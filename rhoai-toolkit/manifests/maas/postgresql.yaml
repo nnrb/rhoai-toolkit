@@ -1,0 +1,81 @@
+# MaaS용 PostgreSQL (API key 해시·구독·만료 상태 저장). 계정 Secret(maas-postgresql)은 61-maas-db.sh가 만든다.
+#   - 이미지: postgresql-16 (RHOAI는 PostgreSQL 14 이상 요구). 사내 레지스트리 미러(IDMS) 전제
+#   - PVC는 /var/lib/pgsql/data 에 마운트해야 재부팅 후 데이터가 유지된다(TS-17)
+#   - 운영 환경은 사내 표준 DB(백업·이중화) 사용을 권장: MAAS_DB_MODE=external
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: maas-postgresql-data
+  namespace: ${MAAS_DB_NS}
+spec:
+  storageClassName: ${STORAGE_CLASS}
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: ${MAAS_DB_SIZE}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maas-postgresql
+  namespace: ${MAAS_DB_NS}
+  labels:
+    app: maas-postgresql
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: maas-postgresql
+  template:
+    metadata:
+      labels:
+        app: maas-postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: ${MAAS_DB_IMAGE}
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          env:
+            - name: POSTGRESQL_USER
+              valueFrom: {secretKeyRef: {name: maas-postgresql, key: database-user}}
+            - name: POSTGRESQL_PASSWORD
+              valueFrom: {secretKeyRef: {name: maas-postgresql, key: database-password}}
+            - name: POSTGRESQL_DATABASE
+              valueFrom: {secretKeyRef: {name: maas-postgresql, key: database-name}}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pgsql/data
+          readinessProbe:
+            exec:
+              command: ["/usr/libexec/check-container"]
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["/usr/libexec/check-container", "--live"]
+            initialDelaySeconds: 120
+            timeoutSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: maas-postgresql-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maas-postgresql
+  namespace: ${MAAS_DB_NS}
+spec:
+  selector:
+    app: maas-postgresql
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432

@@ -1,0 +1,9 @@
+# Authorino가 maas-api 등 클러스터 내부 TLS를 신뢰하도록 OpenShift service CA를 주입받는 ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openshift-service-ca-bundle
+  namespace: kuadrant-system
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+data: {}

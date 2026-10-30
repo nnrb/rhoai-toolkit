@@ -1,0 +1,8 @@
+# 프로젝트 namespace별 LocalQueue. 40-kueue.sh가 KUEUE_NAMESPACES 목록마다 적용한다.
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: ${KUEUE_QUEUE_NAME}
+  namespace: ${TARGET_NS}
+spec:
+  clusterQueue: ${KUEUE_QUEUE_NAME}

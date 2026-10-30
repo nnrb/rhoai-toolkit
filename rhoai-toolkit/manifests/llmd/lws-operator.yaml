@@ -1,0 +1,11 @@
+# LeaderWorkerSet 컨트롤러를 기동하는 Operator CR (llm-d multi-node / P/D 분리에 필요)
+# 근거: https://github.com/openshift/lws-operator , MaaS 설치 가이드 prerequisites
+apiVersion: operator.openshift.io/v1
+kind: LeaderWorkerSetOperator
+metadata:
+  name: cluster
+  namespace: openshift-lws-operator
+spec:
+  managementState: Managed
+  logLevel: Normal
+  operatorLogLevel: Normal

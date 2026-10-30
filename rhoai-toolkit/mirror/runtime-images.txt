@@ -1,0 +1,9 @@
+# 스크립트 실행용 이미지(스크립트가 직접 띄우는 Pod의 이미지). Operator가 가져오는 이미지(RHOAI·RHCL·COO 등)는 넣지 않는다.
+#   형식: <이미지 또는 $변수> <기능 변수(쉼표로 여러 개, 모두 true일 때만 확인. -는 항상)> <사용 스크립트> # 설명
+#   $변수는 config/env.sh 값으로 바꿔 확인한다(digest로 고정해도 실제 배포 이미지와 같게 확인됨).
+#   반입: 02_이미지반입/imageset-02의 [S] 구역(기본값 이미지). 확인: ./bc-toolkit.sh images
+#   oc debug node(01 OCP 업그레이드 작업계획서)는 release payload의 tools 이미지를 쓴다 → imageset-01로 반입됨, 여기 없음.
+$MAAS_DB_IMAGE FEATURE_MAAS scripts/61-maas-db.sh # MaaS DB(PostgreSQL 16). 기본값은 2026-08 반입분(rhoai34-20260813)
+$REDIS_IMAGE FEATURE_MAAS,MAAS_REDIS scripts/63-maas-fixes.sh # Limitador redis-cached(토큰 한도). 기본 registry.redhat.io/rhel9/redis-7:latest
+$MCP_SERVER_IMAGE FEATURE_MCP_SERVERS scripts/71-mcp-servers.sh # Kubernetes MCP 서버(읽기 전용). 기본 quay.io/redhat-ai-services/kubernetes-mcp-server:latest
+$OTEL_PYTHON_IMAGE - scripts/81-otel-instrumentation.sh # OTel Python 자동 주입(Instrumentation). 원본 ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.54b1

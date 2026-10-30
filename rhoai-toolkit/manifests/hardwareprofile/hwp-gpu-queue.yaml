@@ -1,0 +1,33 @@
+# Kueue 큐로 스케줄링하는 GPU Hardware Profile. 노드 선택·toleration은 Kueue ResourceFlavor에서 관리한다.
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: ${HWP_NAME}
+  namespace: ${AI_NS}
+  annotations:
+    opendatahub.io/display-name: "${HWP_DISPLAY_NAME}"
+    opendatahub.io/disabled: "false"
+spec:
+  identifiers:
+    - identifier: cpu
+      displayName: CPU
+      resourceType: CPU
+      defaultCount: 2
+      minCount: 1
+      maxCount: ${HWP_CPU_MAX}
+    - identifier: memory
+      displayName: Memory
+      resourceType: Memory
+      defaultCount: 8Gi
+      minCount: 2Gi
+      maxCount: ${HWP_MEM_MAX}
+    - identifier: ${GPU_RESOURCE_NAME}
+      displayName: GPU
+      resourceType: Accelerator
+      defaultCount: 1
+      minCount: 1
+      maxCount: ${HWP_GPU_MAX}
+  scheduling:
+    type: Queue
+    kueue:
+      localQueueName: ${KUEUE_QUEUE_NAME}

@@ -1,0 +1,9 @@
+# OpenShift 내장 Gateway API 컨트롤러를 쓰는 GatewayClass.
+# RHOAI가 data-science-gateway-class를 이미 만들었으면 이 파일은 적용되지 않는다(detect_gateway_class).
+# Service Mesh 3를 수동 구독하지 않는다. OCP Ingress Operator가 관리한다.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: openshift-default
+spec:
+  controllerName: openshift.io/gateway-controller/v1

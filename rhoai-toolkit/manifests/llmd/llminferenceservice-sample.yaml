@@ -1,0 +1,42 @@
+# llm-d 샘플(스크립트가 자동 적용하지 않음). 값 치환 후 oc apply -f 로 사용한다.
+# 적용 전 확인
+#   oc api-resources | grep -i llminferenceservice      # v1alpha1 / v1alpha2 중 설치된 버전
+#   oc explain llminferenceservice.spec --recursive --api-version=serving.kserve.io/<버전>
+#   oc get llminferenceserviceconfig -n redhat-ods-applications   # RHOAI 기본 vLLM 런타임 config
+# 폐쇄망
+#   - 모델은 내부 S3(s3://), PVC(pvc://), 내부 레지스트리의 modelcar(oci://) 중 하나로 반입한다. hf:// 는 쓸 수 없다.
+#   - 런타임 이미지는 RHOAI CSV relatedImages(oc-mirror로 반입됨)를 쓰는 기본 config를 상속한다.
+#   - S3 자격증명은 serviceAccount에 연결한 Secret으로 준다(BC 검증본: RHOAI가능활성화/RHOAI_MaaS_llm-d_HTTP2_YAML_20261019/40-llmd).
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceService
+metadata:
+  name: <MODEL_NAME>
+  namespace: <MODEL_NAMESPACE>              # ${GATEWAY_ACCESS_LABEL}=true label 필요
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/genai-asset: "true"      # Gen AI Studio(Playground)에서 선택 가능
+  annotations:
+    openshift.io/display-name: <MODEL_NAME>
+    opendatahub.io/model-type: generative
+spec:
+  model:
+    name: <MODEL_NAME>
+    uri: s3://<BUCKET>/<MODEL_PATH>          # 또는 oci://<INTERNAL_REGISTRY>/<modelcar>:<tag>
+  replicas: 1
+  router:
+    gateway:
+      refs:
+        - name: openshift-ai-inference       # MaaS로 공개하면 maas-default-gateway
+          namespace: openshift-ingress
+    route: {}
+    scheduler: {}                            # EPP(지능형 라우팅). replicas 2 이상일 때 효과
+  template:
+    serviceAccountName: <SA_WITH_S3_SECRET>
+    containers:
+      - name: main
+        env:
+          - name: VLLM_ADDITIONAL_ARGS
+            value: --max-model-len=4096 --gpu-memory-utilization=0.90
+        resources:
+          requests: {cpu: "2", memory: 8Gi, nvidia.com/gpu: "1"}
+          limits:   {cpu: "4", memory: 16Gi, nvidia.com/gpu: "1"}

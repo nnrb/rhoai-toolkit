@@ -1,0 +1,28 @@
+# [01] OCP 4.20 z-stream release (01 OCP 업그레이드 작업계획서 5~10단계, 수동)
+#   현재 4.20.32 → 대상 z-stream. 4.20.ZZ를 고객이 확정한 버전으로 바꾼다(그대로 두면 oc-mirror가 실패한다).
+#   예) sed -i 's/4\.20\.ZZ/4.20.<확정 번호>/g' imageset-01-ocp-release-4.20.yaml
+#
+# 인터넷 구간:  oc mirror -c imageset-01-ocp-release-4.20.yaml file:///data/mirror/ocp-4.20.ZZ --v2
+# 폐쇄망 구간:  oc mirror -c imageset-01-ocp-release-4.20.yaml --from file:///data/mirror/ocp-4.20.ZZ \
+#                 docker://pocprg01.ocp.bcnuri.com:5000 --v2
+#   - release는 레지스트리 최상위(openshift/release-images, openshift/release)로 반입한다(작업계획서 RELEASE_IMAGE 경로와 같음).
+#   - 결과: working-dir/cluster-resources/idms-oc-mirror.yaml(객체 이름 idms-release-0), itms-oc-mirror.yaml(있으면), signature-configmap.json
+#     → 01 작업계획서 5~6단계(IDMS/ITMS)·7단계(signature)에서 사용한다. upgrade-env.sh의 MIRROR_DIR = 위 file:// 경로
+#   - 클러스터에 같은 이름(idms-release-0)이 이미 있으므로 원본을 직접 적용하지 않는다. 01 작업계획서 5단계가 이름에 -ocp202611을 붙인 사본을 적용한다.
+#
+# 2026-10-28 점검 참고
+#   - Upgradeable=False(AdminAckRequired, IncompatibleOperatorsInstalled)는 4.21 minor 업그레이드 차단 사유다. 4.20 z-stream은 진행할 수 있다.
+#   - 4.21부터는 release 미러에 Sigstore 서명 이미지가 필요하다(이번 z-stream에는 해당 없음).
+#   - 업데이트 그래프(graph)는 반입하지 않는다(OSUS 미사용, oc adm upgrade --to-image --allow-explicit-upgrade 사용).
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  platform:
+    architectures:
+      - amd64
+    graph: false
+    channels:
+      - name: stable-4.20
+        type: ocp
+        minVersion: 4.20.ZZ
+        maxVersion: 4.20.ZZ

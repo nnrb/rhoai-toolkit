@@ -1,0 +1,62 @@
+# 폐쇄망·온프레미스용 Gateway: LoadBalancer 대신 ClusterIP Service + OpenShift Route(passthrough)
+#   - TLS는 Gateway(Envoy)가 종료한다. Route는 SNI로 전달만 한다.
+#   - Gateway에 Route를 붙일 수 있는 namespace를 label(${GATEWAY_ACCESS_LABEL}=true)로 제한한다.
+#   - hostname은 listener에 지정한다(인증서 SAN과 일치해야 함).
+#   - Service 이름은 컨트롤러가 <gateway>-<gatewayclass> 로 만든다.
+# 변수: GW_NAME GW_CLASS GW_HOST GW_TLS_SECRET GW_ANNOTATIONS GATEWAY_ACCESS_LABEL
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ${GW_NAME}-config
+  namespace: openshift-ingress
+data:
+  service: |
+    spec:
+      type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: ${GW_NAME}
+  namespace: openshift-ingress
+  annotations: ${GW_ANNOTATIONS}
+spec:
+  gatewayClassName: ${GW_CLASS}
+  infrastructure:
+    parametersRef:
+      group: ""
+      kind: ConfigMap
+      name: ${GW_NAME}-config
+  listeners:
+    - name: https
+      hostname: ${GW_HOST}
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: ${GW_TLS_SECRET}
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              ${GATEWAY_ACCESS_LABEL}: "true"
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ${GW_NAME}
+  namespace: openshift-ingress
+spec:
+  host: ${GW_HOST}
+  to:
+    kind: Service
+    name: ${GW_NAME}-${GW_CLASS}
+  port:
+    targetPort: 443
+  tls:
+    termination: passthrough
+  wildcardPolicy: None

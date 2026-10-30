@@ -1,0 +1,12 @@
+# JobSet 컨트롤러를 기동하는 Operator CR (Kubeflow Trainer v2의 실행 기반)
+# RHOAI trainer 컴포넌트는 이름이 cluster인 JobSetOperator와 jobset.x-k8s.io CRD를 확인한다.
+# 적용 전 확인: oc explain jobsetoperator.spec
+apiVersion: operator.openshift.io/v1
+kind: JobSetOperator
+metadata:
+  name: cluster
+  namespace: ${JOBSET_NS}
+spec:
+  managementState: Managed
+  logLevel: Normal
+  operatorLogLevel: Normal

@@ -1,0 +1,38 @@
+# nodeSelector/toleration으로 스케줄링하는 GPU Hardware Profile (Kueue 미사용 시)
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: ${HWP_NAME}
+  namespace: ${AI_NS}
+  annotations:
+    opendatahub.io/display-name: "${HWP_DISPLAY_NAME}"
+    opendatahub.io/disabled: "false"
+spec:
+  identifiers:
+    - identifier: cpu
+      displayName: CPU
+      resourceType: CPU
+      defaultCount: 2
+      minCount: 1
+      maxCount: ${HWP_CPU_MAX}
+    - identifier: memory
+      displayName: Memory
+      resourceType: Memory
+      defaultCount: 8Gi
+      minCount: 2Gi
+      maxCount: ${HWP_MEM_MAX}
+    - identifier: ${GPU_RESOURCE_NAME}
+      displayName: GPU
+      resourceType: Accelerator
+      defaultCount: 1
+      minCount: 1
+      maxCount: ${HWP_GPU_MAX}
+  scheduling:
+    type: Node
+    node:
+      nodeSelector:
+        ${HWP_NODE_SELECTOR_KEY}: "${HWP_NODE_SELECTOR_VALUE}"
+      tolerations:
+        - key: ${GPU_RESOURCE_NAME}
+          operator: Exists
+          effect: NoSchedule

@@ -1,0 +1,55 @@
+# MaaS 모델 공개·접근 제어 샘플(스크립트가 자동 적용하지 않음). <...>를 바꾼 뒤 oc apply -f 로 사용한다.
+# 순서: 모델(LLMInferenceService, router.gateway.refs=maas-default-gateway) → MaaSModelRef → MaaSSubscription → MaaSAuthPolicy
+# 확인: oc api-resources --api-group=maas.opendatahub.io   (3.4.2 실측: maasmodelrefs, maassubscriptions, maasauthpolicies, externalmodels, tenants)
+# 주의
+#   - Subscription만 있고 AuthPolicy가 없으면 403. 둘 다 같은 모델(name/namespace)을 가리켜야 한다(TS-13, TS-14).
+#   - 같은 그룹에 걸친 Subscription끼리 priority가 같으면 SpecPriorityDuplicate(TS-08).
+#   - Limitador 카운터는 기본 메모리 저장 → Pod 재시작 시 quota 초기화.
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  name: maas-users
+users:
+  - <USER_1>
+---
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  name: <MODEL_NAME>
+  namespace: <MODEL_NAMESPACE>
+spec:
+  modelRef:
+    kind: LLMInferenceService
+    name: <MODEL_NAME>
+---
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  name: maas-users-standard
+  namespace: models-as-a-service
+spec:
+  owner:
+    groups:
+      - name: maas-users
+  priority: 100
+  modelRefs:
+    - name: <MODEL_NAME>
+      namespace: <MODEL_NAMESPACE>
+      tokenRateLimits:
+        - limit: 20000
+          window: 1m
+        - limit: 1000000
+          window: 24h
+---
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  name: <MODEL_NAME>-access
+  namespace: models-as-a-service
+spec:
+  modelRefs:
+    - name: <MODEL_NAME>
+      namespace: <MODEL_NAMESPACE>
+  subjects:
+    groups:
+      - name: maas-users

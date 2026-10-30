@@ -1,0 +1,25 @@
+# ResourceFlavor → ClusterQueue → (namespace별) LocalQueue
+# 이름은 DSC kueue.defaultClusterQueueName / defaultLocalQueueName (기본 default)과 같아야 Dashboard 기본 연동과 맞는다.
+# Workbench가 이 큐를 쓰므로 preemption은 설정하지 않는다(non-preemptive).
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: default-flavor
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: ${KUEUE_QUEUE_NAME}
+spec:
+  namespaceSelector: {}
+  resourceGroups:
+    - coveredResources: ["cpu", "memory", "${GPU_RESOURCE_NAME}"]
+      flavors:
+        - name: default-flavor
+          resources:
+            - name: cpu
+              nominalQuota: ${KUEUE_CPU_QUOTA}
+            - name: memory
+              nominalQuota: ${KUEUE_MEMORY_QUOTA}
+            - name: ${GPU_RESOURCE_NAME}
+              nominalQuota: ${KUEUE_GPU_QUOTA}

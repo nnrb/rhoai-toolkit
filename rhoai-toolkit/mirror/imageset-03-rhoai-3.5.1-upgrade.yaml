@@ -1,0 +1,67 @@
+# [03] RHOAI 3.5.1 업그레이드용 (05 작업계획서 3단계에서 적용: MIRROR_PROFILE=rhoai351, 접미사 -rhoai351. 검토: 04_검토자료)
+#
+# 인터넷 구간:  oc mirror -c imageset-03-rhoai-3.5.1-upgrade.yaml file:///data/mirror/rhoai351 --v2
+# 폐쇄망 구간:  oc mirror -c imageset-03-rhoai-3.5.1-upgrade.yaml --from file:///data/mirror/rhoai351 \
+#                 docker://pocprg01.ocp.bcnuri.com:5000/rhoai351 --v2
+#   - 결과 CatalogSource(cs-redhat-operator-index-v4-20 등)를 새로 만든 뒤 rhods-operator Subscription의 source·channel(stable-3.5)을 바꾼다.
+#   - catalog 태그는 클러스터 OCP minor(4.20)와 맞춘다(기존 ai-342·ai-other 카탈로그는 v4.22 index).
+#
+# 출처: red-hat-data-services/rhoai-disconnected-install-helper rhoai-3.5.1-imagesetconfig.yaml(2026-10-22 조회), RHOAI 3.5 설치·MaaS·llm-d 문서
+# 3.5는 EUS 릴리스(stable-3.5, eus-3.5 채널).
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  operators:
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.20
+      packages:
+        - name: rhods-operator
+          channels:
+            - name: stable-3.5
+              minVersion: 3.5.1
+              maxVersion: 3.5.1
+        # 아래 의존 Operator는 ai-other(v4.22 index)로 이미 반입·일부 설치됐다. 3.5.1 요구 버전을 확인하고 필요한 것만 주석을 푼다.
+        #   RHCL 1.4.2 이상(1.4.0·1.4.1 금지), RHBoK 1.3(Trainer는 1.4 이상과 비호환, OCP 4.22에는 1.3 없음)
+        # - name: rhcl-operator
+        #   channels: [{name: stable}]
+        # - name: authorino-operator
+        #   channels: [{name: stable}]
+        # - name: limitador-operator
+        #   channels: [{name: stable}]
+        # - name: dns-operator
+        #   channels: [{name: stable}]
+        # - name: leader-worker-set
+        #   channels: [{name: stable-v1.0}]
+        # - name: servicemeshoperator3
+        #   channels: [{name: stable}]
+        # - name: openshift-cert-manager-operator
+        #   channels: [{name: stable-v1}]
+        # - name: kueue-operator
+        #   channels: [{name: stable-v1.3}]
+        # - name: job-set
+        #   channels: [{name: stable-v1.0}]
+        # - name: cluster-observability-operator
+        #   channels: [{name: stable}]
+        # - name: opentelemetry-product
+        #   channels: [{name: stable}]
+        # - name: tempo-product
+        #   channels: [{name: stable}]
+  additionalImages:
+    # ---- 스크립트 실행용 이미지(OTel Python·Redis·MCP 서버·PostgreSQL 16): imageset-02 [S]로 반입한 것을 그대로 쓴다(중복 반입 불필요)
+    # ---- 아래는 rhoai-disconnected-install-helper rhoai-3.5.1 목록 중 Ray·학습·파이프라인 런타임(Workbench·ROCm 제외, 2026-10-29)
+    - name: quay.io/modh/fms-hf-tuning@sha256:83f70e981657728ef9929fa50d06fe5c72f364e5ed41a9fc1331e99751f610e8
+    - name: quay.io/modh/ray@sha256:595b3acd10244e33fca1ed5469dccb08df66f470df55ae196f80e56edf35ad5a
+    - name: quay.io/modh/ray@sha256:e29b721f02896093fa8d128d7838200d42f0b3d6ae7d680c1e643e1dd469abe5
+    - name: quay.io/modh/ray@sha256:f63a015302758f805e5332605669b886e4d7ac60ec929413a2ffc19a904211c6
+    - name: quay.io/modh/ray@sha256:28a8745be454b0e881ce6c200599ddfcb3366b707a5b53cfa73087d599555158
+    - name: quay.io/modh/ray@sha256:31023d53c31f13fe863979426fd2b69c20856d02b749f16707926eb945edda9e
+    - name: registry.redhat.io/rhoai/odh-pipeline-runtime-datascience-cpu-py312-rhel9@sha256:22ea9fc4352ec427a240fb983afb0ad3e7c1b2f2dc97bce4587695777f23ef07
+    - name: registry.redhat.io/rhoai/odh-pipeline-runtime-minimal-cpu-py312-rhel9@sha256:d3d4d82d0685feb25ec91cf8928dc5c5859436f44a21cd93b5d2ce7c1869a603
+    - name: registry.redhat.io/rhoai/odh-pipeline-runtime-pytorch-cuda-py312-rhel9@sha256:8b059881d8d7ef85883c7672a4464368ae564f2ce6104d54ebb03ac5d152d536
+    - name: registry.redhat.io/rhoai/odh-pipeline-runtime-pytorch-llmcompressor-cuda-py312-rhel9@sha256:7c2ce6c9e93266a11cbfdef8b3abbeb9ffd13f983b9fb3a091607d1065d597e0
+    # - name: registry.redhat.io/rhoai/odh-pipeline-runtime-pytorch-rocm-py312-rhel9@sha256:d9c32296f9b8b6b9b0fccaafe0e910d96e3e700fa14876f19ad7570523b4b384   # AMD 제외
+    # - name: registry.redhat.io/rhoai/odh-pipeline-runtime-tensorflow-rocm-py312-rhel9@sha256:a4cfdf3f66e855efd3809f83e806becd5f30a8e18e73ef157f81aab37f07cd47   # AMD 제외
+    - name: registry.redhat.io/rhoai/odh-pipeline-runtime-tensorflow-cuda-py312-rhel9@sha256:917272fc0483b20ac426626f5ee5bcdcbc4c88b5bbdbf00cf00a7a59d6bf5686
+    - name: registry.redhat.io/rhoai/odh-th06-cuda130-torch210-py312-rhel9@sha256:c18bb50a0082f9258afeb95cf9d8bbc6af7a48e712a7587073f2b281ca2200b8
+    # - name: registry.redhat.io/rhoai/odh-th06-rocm64-torch291-py312-rhel9@sha256:3f3fdca286cfa6ab1f48cdfa109e78e6c8615f823568bb8cc18263db42f1beed   # AMD 제외
+    - name: registry.redhat.io/rhoai/odh-th06-cpu-torch210-py312-rhel9@sha256:4b762d722faa80d7c6641a631d891f0ddf048950a4f8b6e5b93010d65134687d
+    # ---- 업그레이드 후 05-image-gap-check.sh로 식별한 기능 이미지(MCP·Agent·EvalHub·Guardrails·AutoML 등)를 2차 반입 목록으로 추가한다.

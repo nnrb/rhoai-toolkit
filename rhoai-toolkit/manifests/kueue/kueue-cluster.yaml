@@ -1,0 +1,12 @@
+# Red Hat build of Kueue 인스턴스. 이미 Kueue/cluster가 있으면 40-kueue.sh는 이 파일을 적용하지 않는다.
+# frameworks는 설치된 CRD enum과 대조된다(서버 dry-run으로 검증). 사용하지 않는 항목은 config/env.sh의 KUEUE_FRAMEWORKS에서 뺀다.
+apiVersion: kueue.openshift.io/v1
+kind: Kueue
+metadata:
+  name: cluster
+  namespace: openshift-kueue-operator
+spec:
+  managementState: Managed
+  config:
+    integrations:
+      frameworks: ${KUEUE_FRAMEWORKS_YAML}
