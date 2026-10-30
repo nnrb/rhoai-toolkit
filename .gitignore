@@ -1,0 +1,11 @@
+# 현장 값·비밀값이 들어가는 파일
+config/env.sh
+*.key
+*.pem
+*.crt
+# 실행 기록(백업 YAML에 접속 정보가 포함될 수 있음)
+evidence/
+out/
+# oc-mirror 작업 디렉터리
+mirror/working-dir/
+mirror/*.tar

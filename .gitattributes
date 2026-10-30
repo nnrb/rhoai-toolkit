@@ -1,0 +1,4 @@
+# Windows에서 편집해도 리눅스 관리 호스트에서 실행되도록 LF 고정
+*.sh   text eol=lf
+*.yaml text eol=lf
+*.md   text eol=lf
